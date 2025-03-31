@@ -1,0 +1,29 @@
+{
+  "name": "cdk-secrets-rotation",
+  "version": "0.1.0",
+  "bin": {
+    "cdk-secrets-rotation": "bin/cdk-secrets-rotation.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.777.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "22.7.9",
+    "@types/pg": "^8.11.11",
+    "aws-cdk": "2.1006.0",
+    "jest": "^29.7.0",
+    "pg": "^8.14.1",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.6.3"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.185.0",
+    "constructs": "^10.0.0"
+  }
+}
