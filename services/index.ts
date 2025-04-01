@@ -99,7 +99,7 @@ function generateSecurePassword(length: number = 16): string {
 async function createSecret(secretId: string, token: string): Promise<void> {
   const current = await getSecretJson(secretId, 'AWSCURRENT');
 
-  const newPassword = generateSecurePassword(20);
+  const newPassword = generateSecurePassword(30);
   const newSecret = { ...current, password: newPassword };
 
   await secretsClient.send(
