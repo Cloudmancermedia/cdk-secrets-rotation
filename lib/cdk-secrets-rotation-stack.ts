@@ -6,8 +6,10 @@ import {
   DatabaseClusterEngine,
   AuroraPostgresEngineVersion,
   Credentials,
+  ClusterInstance,
 } from 'aws-cdk-lib/aws-rds';
 import {
+  HostedRotation,
   RotationSchedule,
 } from 'aws-cdk-lib/aws-secretsmanager';
 import {
@@ -15,18 +17,21 @@ import {
   Runtime,
   Code,
 } from 'aws-cdk-lib/aws-lambda';
-import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import * as path from 'path';
 
 export class CdkSecretsRotationStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    // ✅ Create a VPC
-    const vpc = new Vpc(this, 'RotationVpc', {
+    const vpc = new Vpc(this, 'Vpc', {
       maxAzs: 2,
       subnetConfiguration: [
         { 
+          cidrMask: 24,
+          name: 'Public',
+          subnetType: SubnetType.PUBLIC
+        },
+        { 
+          cidrMask: 24,
           name: 'Private',
           subnetType: SubnetType.PRIVATE_WITH_EGRESS
         }
@@ -41,34 +46,55 @@ export class CdkSecretsRotationStack extends Stack {
       engine: DatabaseClusterEngine.auroraPostgres({
         version: AuroraPostgresEngineVersion.VER_16_6,
       }),
+      enableDataApi: false,
+      defaultDatabaseName: 'postgres',
       credentials: dbSecret,
-      instances: 1,
-      instanceProps: {
+      readers: [
+        ClusterInstance.provisioned('reader', {
+          instanceType: InstanceType.of(InstanceClass.T4G, InstanceSize.MEDIUM),
+        })
+      ],
+      writer: ClusterInstance.provisioned('writer', {
         instanceType: InstanceType.of(InstanceClass.T4G, InstanceSize.MEDIUM),
-        vpc,
-      },
+      }),
+      vpc,
+      vpcSubnets: {
+        subnetType: SubnetType.PRIVATE_WITH_EGRESS,
+      }
     });
 
     const rotationLambda = new Function(this, 'RotationLambda', {
       runtime: Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: Code.fromAsset(path.join(__dirname, '../services/rotation')),
+      code: Code.fromAsset('dist/services'),
       timeout: Duration.minutes(2),
       vpc,
       environment: {
         DB_CLUSTER_ARN: cluster.clusterArn,
-        SECRET_ARN: dbSecret.secret?.secretArn ?? '',
+        SECRET_ARN: cluster.secret?.secretArn ?? '',
       },
     });
 
-    cluster.grantDataApiAccess(rotationLambda);
-    dbSecret.secret?.grantRead(rotationLambda);
-    dbSecret.secret?.grantWrite(rotationLambda);
+    cluster.secret?.grantRead(rotationLambda);
+    cluster.secret?.grantWrite(rotationLambda);
 
-    new RotationSchedule(this, 'SecretRotationSchedule', {
-      secret: dbSecret.secret!,
+    cluster.secret?.addRotationSchedule('RotationSchedule', {
       rotationLambda,
-      automaticallyAfter: Duration.hours(1), // Minimum rotation interval allowed by Secrets Manager
+      automaticallyAfter: Duration.hours(1),
+      rotateImmediatelyOnUpdate: true,
+      hostedRotation: HostedRotation.postgreSqlSingleUser({
+        functionName: rotationLambda.functionName,
+        vpc,
+        vpcSubnets: {
+          subnetType: SubnetType.PRIVATE_WITH_EGRESS,
+        },
+        securityGroups: [rotationLambda.connections.securityGroups[0]]
+      })
     });
-  }
+    // new RotationSchedule(this, 'SecretRotationSchedule', {
+    //   secret: dbSecret.secret!,
+    //   rotationLambda,
+    //   automaticallyAfter: Duration.hours(1),
+    // });
+  };
 }
