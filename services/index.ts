@@ -101,6 +101,7 @@ async function createSecret(secretId: string, token: string): Promise<void> {
 
   const newPassword = generateSecurePassword(30);
   const newSecret = { ...current, password: newPassword };
+  console.log('New secret:', newSecret);
 
   await secretsClient.send(
     new PutSecretValueCommand({

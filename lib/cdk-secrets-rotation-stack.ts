@@ -1,6 +1,6 @@
 import { Stack, StackProps, Duration } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
-import { Vpc, InstanceType, InstanceClass, InstanceSize, SubnetType } from 'aws-cdk-lib/aws-ec2';
+import { Vpc, InstanceType, InstanceClass, InstanceSize, SubnetType, SecurityGroup, Port } from 'aws-cdk-lib/aws-ec2';
 import {
   DatabaseCluster,
   DatabaseClusterEngine,
@@ -16,6 +16,7 @@ import {
   Function,
   Runtime,
   Code,
+  LayerVersion,
 } from 'aws-cdk-lib/aws-lambda';
 
 export class CdkSecretsRotationStack extends Stack {
@@ -38,6 +39,18 @@ export class CdkSecretsRotationStack extends Stack {
       ],
     });
 
+    const dbSecurityGroup = new SecurityGroup(this, 'AuroraSecurityGroup', {
+      vpc,
+      allowAllOutbound: true,
+    });
+
+    const lambdaSecurityGroup = new SecurityGroup(this, 'LambdaSecurityGroup', {
+      vpc,
+      allowAllOutbound: true,
+    });
+
+    dbSecurityGroup.addIngressRule(lambdaSecurityGroup, Port.tcp(5432), 'Allow Lambda access');
+
     const dbSecret = Credentials.fromGeneratedSecret('postgresadmin', {
       secretName: 'postgres-db-credential-secret'
     });
@@ -46,7 +59,7 @@ export class CdkSecretsRotationStack extends Stack {
       engine: DatabaseClusterEngine.auroraPostgres({
         version: AuroraPostgresEngineVersion.VER_16_6,
       }),
-      enableDataApi: false,
+      securityGroups: [dbSecurityGroup],
       defaultDatabaseName: 'postgres',
       credentials: dbSecret,
       readers: [
@@ -63,11 +76,18 @@ export class CdkSecretsRotationStack extends Stack {
       }
     });
 
+    const pgLayer = new LayerVersion(this, 'PgLayer', {
+      code: Code.fromAsset('lambda-layers/pg-layer'),
+      compatibleRuntimes: [Runtime.NODEJS_22_X],
+      description: 'Layer for PostgreSQL client (pg) and AWS SDK',
+    });
+
     const rotationLambda = new Function(this, 'RotationLambda', {
       runtime: Runtime.NODEJS_22_X,
       handler: 'index.handler',
       code: Code.fromAsset('dist/services'),
       timeout: Duration.minutes(2),
+      layers: [pgLayer],
       vpc,
       environment: {
         DB_CLUSTER_ARN: cluster.clusterArn,
@@ -80,16 +100,16 @@ export class CdkSecretsRotationStack extends Stack {
 
     cluster.secret?.addRotationSchedule('RotationSchedule', {
       rotationLambda,
-      automaticallyAfter: Duration.hours(1),
+      automaticallyAfter: Duration.hours(4),
       rotateImmediatelyOnUpdate: true,
-      hostedRotation: HostedRotation.postgreSqlSingleUser({
-        functionName: rotationLambda.functionName,
-        vpc,
-        vpcSubnets: {
-          subnetType: SubnetType.PRIVATE_WITH_EGRESS,
-        },
-        securityGroups: [rotationLambda.connections.securityGroups[0]]
-      })
+      // hostedRotation: HostedRotation.postgreSqlSingleUser({
+      //   functionName: rotationLambda.functionName,
+      //   vpc,
+      //   vpcSubnets: {
+      //     subnetType: SubnetType.PRIVATE_WITH_EGRESS,
+      //   },
+      //   securityGroups: [rotationLambda.connections.securityGroups[0]]
+      // })
     });
     // new RotationSchedule(this, 'SecretRotationSchedule', {
     //   secret: dbSecret.secret!,
