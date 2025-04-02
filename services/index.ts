@@ -24,6 +24,7 @@ const secretsClient = new SecretsManagerClient({});
 
 export const handler = async (event: RotationEvent): Promise<void> => {
   const { Step: step, SecretId: secretArn, ClientRequestToken: token } = event;
+  let newSecret;
 
   switch (step) {
     case 'createSecret':
@@ -157,7 +158,8 @@ async function testSecret(secretId: string, token: string): Promise<void> {
 
   try {
     await client.connect();
-    await client.query('SELECT 1');
+    const testQueryValue = await client.query('SELECT 1');
+    console.log('test query value: ', testQueryValue)
     console.log('Test connection succeeded.');
   } catch (err) {
     console.error('Test failed:', err);
@@ -173,6 +175,7 @@ async function finishSecret(secretId: string, token: string): Promise<void> {
       SecretId: secretId,
     })
   );
+  const pending = JSON.stringify(await getSecretJson(secretId, 'AWSPENDING'));
 
   const metadata: Record<string, string[]> = Array.isArray(result.VersionStages)
     ? {}
@@ -185,6 +188,7 @@ async function finishSecret(secretId: string, token: string): Promise<void> {
   await secretsClient.send(
     new PutSecretValueCommand({
       SecretId: secretId,
+      SecretString: pending,
       ClientRequestToken: token,
       VersionStages: ['AWSCURRENT'],
     })
