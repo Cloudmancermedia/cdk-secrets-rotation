@@ -102,15 +102,8 @@ export class CdkSecretsRotationStack extends Stack {
       rotationLambda,
       automaticallyAfter: Duration.hours(4),
       rotateImmediatelyOnUpdate: true,
-      // hostedRotation: HostedRotation.postgreSqlSingleUser({
-      //   functionName: rotationLambda.functionName,
-      //   vpc,
-      //   vpcSubnets: {
-      //     subnetType: SubnetType.PRIVATE_WITH_EGRESS,
-      //   },
-      //   securityGroups: [rotationLambda.connections.securityGroups[0]]
-      // })
     });
+
     // new RotationSchedule(this, 'SecretRotationSchedule', {
     //   secret: dbSecret.secret!,
     //   rotationLambda,
