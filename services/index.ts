@@ -118,6 +118,8 @@ async function createSecret(secretId: string, token: string): Promise<void> {
 async function setSecret(secretId: string, token: string): Promise<void> {
   const current = await getSecretJson(secretId, 'AWSCURRENT');
   const pending = await getSecretJson(secretId, 'AWSPENDING');
+  console.log('Current secret:', current);
+  console.log('Pending secret:', pending);
 
   const client = new Client({
     host: current.host,
@@ -128,7 +130,9 @@ async function setSecret(secretId: string, token: string): Promise<void> {
   });
 
   try {
+    console.log('Connecting to DB...');
     await client.connect();
+    console.log('Successfully connected to DB.');
     const sql = `ALTER USER ${pending.username} WITH PASSWORD '${pending.password}'`;
     await client.query(sql);
     console.log('DB password updated.');

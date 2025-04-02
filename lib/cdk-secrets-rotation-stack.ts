@@ -89,8 +89,8 @@ export class CdkSecretsRotationStack extends Stack {
       timeout: Duration.minutes(2),
       layers: [pgLayer],
       vpc,
+      securityGroups: [lambdaSecurityGroup],
       environment: {
-        DB_CLUSTER_ARN: cluster.clusterArn,
         SECRET_ARN: cluster.secret?.secretArn ?? '',
       },
     });
