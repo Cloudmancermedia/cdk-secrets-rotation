@@ -24,7 +24,6 @@ const secretsClient = new SecretsManagerClient({});
 
 export const handler = async (event: RotationEvent): Promise<void> => {
   const { Step: step, SecretId: secretArn, ClientRequestToken: token } = event;
-  let newSecret;
 
   switch (step) {
     case 'createSecret':

@@ -9,10 +9,6 @@ import {
   ClusterInstance,
 } from 'aws-cdk-lib/aws-rds';
 import {
-  HostedRotation,
-  RotationSchedule,
-} from 'aws-cdk-lib/aws-secretsmanager';
-import {
   Function,
   Runtime,
   Code,
