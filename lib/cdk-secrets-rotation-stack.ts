@@ -99,11 +99,5 @@ export class CdkSecretsRotationStack extends Stack {
       automaticallyAfter: Duration.hours(4),
       rotateImmediatelyOnUpdate: true,
     });
-
-    // new RotationSchedule(this, 'SecretRotationSchedule', {
-    //   secret: dbSecret.secret!,
-    //   rotationLambda,
-    //   automaticallyAfter: Duration.hours(1),
-    // });
   };
 }
