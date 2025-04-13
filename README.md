@@ -1,14 +1,9 @@
-# Welcome to your CDK TypeScript project
+# Secrets Manager Rotation for RDS DB Credentials
 
-This is a blank project for CDK development with TypeScript.
+A simple repo demonstrating how Secrets Manager rotation works with RDS DB credentials.
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+This repo builds on [this one](https://github.com/Cloudmancermedia/cdk-rds-iam) by adding a rotation schedule for our RDS DB credentials object in Secrets Manager.
 
-## Useful commands
-
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+1. `cd` into the `nodejs` folder and npm i
+2. run `npm run build` in the root CDK driectotu
+3. run `cdk deploy --profile <your profile name>` to deploy to your AWS account.
