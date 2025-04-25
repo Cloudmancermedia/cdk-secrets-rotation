@@ -1,5 +1,7 @@
 # Secrets Manager Rotation for RDS DB Credentials
 
+Watch on [YouTube](https://www.youtube.com/watch?v=2o7eAcpXa4g)
+
 A simple repo demonstrating how Secrets Manager rotation works with RDS DB credentials.
 
 This repo builds on [this one](https://github.com/Cloudmancermedia/cdk-rds-iam) by adding a rotation schedule for our RDS DB credentials object in Secrets Manager.
